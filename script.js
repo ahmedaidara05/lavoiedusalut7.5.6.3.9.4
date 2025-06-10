@@ -469,12 +469,35 @@ function showPaymentModal() {
         }
     });
 
-    document.querySelector('.next-btn').addEventListener('click', () => {
-        if (currentSura < 44) {
-            currentSura++;
+document.querySelector('.next-btn').addEventListener('click', async () => {
+    if (currentSura < 44) {
+        const nextSura = currentSura + 1;
+        if (nextSura >= 10 && nextSura <= 44) {
+            // Vérifier si l'utilisateur est connecté et a payé
+            const user = auth.currentUser;
+            if (user) {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists && userDoc.data().hasPaid) {
+                    currentSura = nextSura;
+                    loadSuraContent();
+                } else {
+                    showPaymentModal();
+                }
+            } else {
+                // Vérifier localStorage pour les utilisateurs non connectés
+                if (localStorage.getItem('hasPaid') === 'true') {
+                    currentSura = nextSura;
+                    loadSuraContent();
+                } else {
+                    showPaymentModal();
+                }
+            }
+        } else {
+            currentSura = nextSura;
             loadSuraContent();
         }
-    });
+    }
+});
 
     document.querySelector('.settings-btn').addEventListener('click', () => {
         settingsPanel.style.display = 'block';
@@ -554,20 +577,46 @@ function showPaymentModal() {
         }
     });
 
-    function loadFavorites() {
-        favoritesList.innerHTML = '';
-        favorites.forEach(sura => {
-            const li = document.createElement('li');
-            li.textContent = `Chapitre ${sura}`;
-            li.addEventListener('click', () => {
+function loadFavorites() {
+    favoritesList.innerHTML = '';
+    favorites.forEach(async (sura) => {
+        const li = document.createElement('li');
+        li.textContent = `Chapitre ${sura}`;
+        li.addEventListener('click', async () => {
+            if (sura >= 10 && sura <= 44) {
+                // Vérifier si l'utilisateur est connecté et a payé
+                const user = auth.currentUser;
+                if (user) {
+                    const userDoc = await db.collection('users').doc(user.uid).get();
+                    if (userDoc.exists && userDoc.data().hasPaid) {
+                        currentSura = sura;
+                        loadSuraContent();
+                        favoritesPage.style.display = 'none';
+                        readingPage.style.display = 'block';
+                    } else {
+                        showPaymentModal();
+                    }
+                } else {
+                    // Vérifier localStorage pour les utilisateurs non connectés
+                    if (localStorage.getItem('hasPaid') === 'true') {
+                        currentSura = sura;
+                        loadSuraContent();
+                        favoritesPage.style.display = 'none';
+                        readingPage.style.display = 'block';
+                    } else {
+                        showPaymentModal();
+                    }
+                }
+            } else {
                 currentSura = sura;
                 loadSuraContent();
                 favoritesPage.style.display = 'none';
                 readingPage.style.display = 'block';
-            });
-            favoritesList.appendChild(li);
+            }
         });
-    }
+        favoritesList.appendChild(li);
+    });
+}
 
     // Notes
     document.querySelector('.note-btn').addEventListener('click', () => {
