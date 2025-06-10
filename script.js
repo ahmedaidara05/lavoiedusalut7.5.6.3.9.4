@@ -404,39 +404,38 @@ sendBtn.onclick = () => {
 
 document.querySelectorAll('.close-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-        if (indexPage.style.display === 'flex') {
+        if (indexPage.style.display === 'block') {
             indexPage.style.display = 'none';
-            homePage.style.display = '';
-        } else if (settingsPanel.style.display === 'flex') {
-            settingsPanel.style.display = '';
-            readingPage.style.display = 'flex';
+            homePage.style.display = 'block';
+        } else if (settingsPanel.style.display === 'block') {
+            settingsPanel.style.display = 'none';
+            readingPage.style.display = 'block';
             // Réinitialiser currentSura si le chapitre actuel est payant
-            if (currentSura >= 10 && currentSura <= 20) {
-                const user = auth.currentUser();
-                if (user || !user && !localStorage.getItem('hasPaid') !== 'true') {
+            if (currentSura >= 10 && currentSura <= 44) {
+                const user = auth.currentUser;
+                if (user) {
                     const userDoc = await db.collection('users').doc(user.uid).get();
                     if (!userDoc.exists || !userDoc.data().hasPaid) {
                         currentSura = 9; // Revenir à un chapitre gratuit
                     }
-                } else {
-                    if (localStorage.getItem('hasPaid') !== 'true') {
-                        currentSura = 9; // Revenir à un chapitre gratuit
-                    }
+                } else if (localStorage.getItem('hasPaid') !== 'true') {
+                    currentSura = 9; // Revenir à un chapitre gratuit
                 }
             }
             loadSuraContent();
-        } else if (favoritesPage.style.display === 'flex') {
-            favoritesPage.style.display = '';
-            readingPage.style.display = 'flex';
-        } else if (notesPage.style.display === 'flex') {
-            notesPage.style.display = '';
-            readingPage.style.display = 'flex';
-        } else if (readingPage.style.display === 'flex') {
-            readingPage.style.display = '';
-            homePage.style.display = '';
+        } else if (favoritesPage.style.display === 'block') {
+            favoritesPage.style.display = 'none';
+            readingPage.style.display = 'block';
+        } else if (notesPage.style.display === 'block') {
+            notesPage.style.display = 'none';
+            readingPage.style.display = 'block';
+        } else if (readingPage.style.display === 'block') {
+            readingPage.style.display = 'none';
+            homePage.style.display = 'block';
         }
     });
 });
+    
 document.querySelectorAll('.index-page li').forEach(li => {
     li.addEventListener('click', async () => {
         currentSura = parseInt(li.getAttribute('data-sura'));
