@@ -1071,3 +1071,9 @@ header h1 {
 .success-message button:hover {
   background-color: #1b5e20;
 }
+
+/* Masquer header-icons ailleurs */
+.home-page .header-icons,
+.reading-page .header-icons {
+    display: none;
+}
