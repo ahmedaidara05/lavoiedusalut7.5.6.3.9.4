@@ -953,31 +953,32 @@ if (savedBgColor) {
     localStorage.setItem('readerBackgroundColor', '#d2c9a3');
 }
 
-    // Gestion du modal d'achat
+// Gestion du modal d'achat
 const paymentModal = document.getElementById('paymentModal');
 const buyButton = document.getElementById('buyButton');
 const loginButton = document.getElementById('loginButton');
 const modalClose = document.querySelector('.modal-close');
 
 buyButton.addEventListener('click', () => {
-    // Générer une référence unique pour le paiement
     const paymentReference = `payment_${Date.now()}`;
-    // Stocker temporairement la référence dans localStorage
     localStorage.setItem('pendingPaymentRef', paymentReference);
-    // Rediriger vers la page de paiement PayTech (URL fictive pour l'exemple, à remplacer par l'URL réelle après configuration)
-    window.location.href = `https://paytech.sn/payment?ref=${paymentReference}&amount=2000&success_url=https://ahmedaidara05.github.io/lavoiedusalut1.5/index.html?payment=success&cancel_url=https://ahmedaidara05.github.io/lavoiedusalut1.5/payment-failure.html`;
+    window.location.href = `https://paytech.sn/pay?token=xyz`; // Remplacer par l'URL PayTech réelle
 });
 
 loginButton.addEventListener('click', () => {
     paymentModal.style.display = 'none';
     settingsPanel.style.display = 'block';
     readingPage.style.display = 'none';
+    homePage.style.display = 'none';
+    indexPage.style.display = 'none';
+    favoritesPage.style.display = 'none';
+    notesPage.style.display = 'none';
 });
 
 modalClose.addEventListener('click', () => {
     paymentModal.style.display = 'none';
 });
-
+    
 // Gestion du message post-paiement
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('payment') === 'success') {
