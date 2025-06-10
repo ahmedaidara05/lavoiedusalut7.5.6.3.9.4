@@ -388,6 +388,23 @@
         </div>
     </div>
 
+    <!-- Modal pour l'invite d'achat -->
+<div id="paymentModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <span class="modal-close">&times;</span>
+    <h2>Accès restreint</h2>
+    <p>ACHETER LE LIVRE POUR 2000FCFA UNE SEULE FOIS OU VOUS CONNECTER POUR ACCEDER AU CONTENUE</p>
+    <button id="buyButton">Acheter (2000 FCFA)</button>
+    <button id="loginButton">Se connecter</button>
+  </div>
+</div>
+
+<!-- Message post-paiement -->
+<div id="paymentSuccessMessage" class="success-message" style="display: none;">
+  <p>Nous vous invitons à vous inscrire pour garder votre contenu déjà payé</p>
+  <button id="closeSuccessMessage">OK</button>
+</div>
+    
     <script type="module" src="script.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
