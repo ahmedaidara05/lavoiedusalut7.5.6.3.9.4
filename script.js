@@ -14,6 +14,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+const PAYTECH_API_KEY = 'ac1bd8720703b21d112a96957f7201ef3a2cf1bf38d7386d2faecfb34f34b32a';
+const PAYTECH_SECRET_KEY = 'f50e61136508dd4c00adc70d6a88d349bec95d803247562b973709344a9764a3';
+const PAYTECH_API_URL = 'https://paytech.sn/api/payment/request-payment';
 
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').then(() => {
@@ -423,14 +426,37 @@ sendBtn.onclick = () => {
         });
     });
 
-    document.querySelectorAll('.index-page li').forEach(li => {
-        li.addEventListener('click', () => {
-            currentSura = parseInt(li.getAttribute('data-sura'));
+document.querySelectorAll('.index-page li').forEach(li => {
+    li.addEventListener('click', async () => {
+        currentSura = parseInt(li.getAttribute('data-sura'));
+        if (currentSura >= 10 && currentSura <= 44) {
+            // Vérifier si l'utilisateur est connecté et a payé
+            const user = auth.currentUser;
+            if (user) {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists && userDoc.data().hasPaid) {
+                    loadSuraContent();
+                    indexPage.style.display = 'none';
+                    readingPage.style.display = 'block';
+                } else {
+                    showPaymentModal();
+                }
+            } else {
+                showPaymentModal();
+            }
+        } else {
             loadSuraContent();
             indexPage.style.display = 'none';
             readingPage.style.display = 'block';
-        });
+        }
     });
+});
+
+// Fonction pour afficher le modal d'achat
+function showPaymentModal() {
+    const modal = document.getElementById('paymentModal');
+    modal.style.display = 'block';
+}
 
     document.querySelector('.prev-btn').addEventListener('click', () => {
         if (currentSura > 1) {
@@ -873,6 +899,73 @@ if (savedBgColor) {
     document.getElementById('readingPage').style.backgroundColor = '#d2c9a3';
     localStorage.setItem('readerBackgroundColor', '#d2c9a3');
 }
+
+    // Gestion du modal d'achat
+const paymentModal = document.getElementById('paymentModal');
+const buyButton = document.getElementById('buyButton');
+const loginButton = document.getElementById('loginButton');
+const modalClose = document.querySelector('.modal-close');
+
+buyButton.addEventListener('click', async () => {
+    const paymentData = {
+        api_key: PAYTECH_API_KEY,
+        api_secret: PAYTECH_SECRET_KEY,
+        amount: 2000,
+        currency: 'XOF',
+        reference: `payment_${Date.now()}`,
+        description: 'Achat de La Voie du Salut (chapitres 10-44)',
+        success_url: 'https://ahmedaidara05.github.io/lavoiedusalut1.5/index.html?payment=success',
+        cancel_url: 'https://ahmedaidara05.github.io/lavoiedusalut1.5/payment-failure.html',
+        ipn_url: 'https://us-central1-la-voie-du-salut-36409.cloudfunctions.net/paytechIPN',
+        customer_email: auth.currentUser ? auth.currentUser.email : 'guest@example.com',
+        customer_phone: '123456789',
+        customer_name: auth.currentUser ? auth.currentUser.displayName || 'Utilisateur' : 'Utilisateur Anonyme'
+    };
+
+    try {
+        const response = await fetch(PAYTECH_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(paymentData)
+        });
+        const result = await response.json();
+        if (result.success && result.payment_url) {
+            window.location.href = result.payment_url;
+        } else {
+            alert('Erreur lors de l’initiation du paiement : ' + result.message);
+        }
+    } catch (error) {
+        console.error('Erreur lors de l’appel à l’API PayTech :', error);
+        alert('Une erreur s’est produite. Veuillez réessayer.');
+    }
+});
+
+loginButton.addEventListener('click', () => {
+    paymentModal.style.display = 'none';
+    settingsPanel.style.display = 'block';
+    readingPage.style.display = 'none';
+});
+
+modalClose.addEventListener('click', () => {
+    paymentModal.style.display = 'none';
+});
+
+// Gestion du message post-paiement
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('payment') === 'success') {
+    const successMessage = document.getElementById('paymentSuccessMessage');
+    successMessage.style.display = 'block';
+    setTimeout(() => {
+        successMessage.style.display = 'none';
+        window.history.replaceState({}, document.title, '/lavoiedusalut1.5/index.html');
+    }, 5000);
+}
+
+document.getElementById('closeSuccessMessage').addEventListener('click', () => {
+    document.getElementById('paymentSuccessMessage').style.display = 'none';
+    window.history.replaceState({}, document.title, '/lavoiedusalut1.5/index.html');
+});
+    
     // Initialisation
     loadSuraContent();
     loadFavorites();
