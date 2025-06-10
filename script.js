@@ -14,9 +14,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-const PAYTECH_API_KEY = 'ac1bd8720703b21d112a96957f7201ef3a2cf1bf38d7386d2faecfb34f34b32a';
-const PAYTECH_SECRET_KEY = 'f50e61136508dd4c00adc70d6a88d349bec95d803247562b973709344a9764a3';
-const PAYTECH_API_URL = 'https://paytech.sn/api/payment/request-payment';
 
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').then(() => {
@@ -442,7 +439,14 @@ document.querySelectorAll('.index-page li').forEach(li => {
                     showPaymentModal();
                 }
             } else {
-                showPaymentModal();
+                // Vérifier localStorage pour les utilisateurs non connectés
+                if (localStorage.getItem('hasPaid') === 'true') {
+                    loadSuraContent();
+                    indexPage.style.display = 'none';
+                    readingPage.style.display = 'block';
+                } else {
+                    showPaymentModal();
+                }
             }
         } else {
             loadSuraContent();
@@ -906,38 +910,13 @@ const buyButton = document.getElementById('buyButton');
 const loginButton = document.getElementById('loginButton');
 const modalClose = document.querySelector('.modal-close');
 
-buyButton.addEventListener('click', async () => {
-    const paymentData = {
-        api_key: PAYTECH_API_KEY,
-        api_secret: PAYTECH_SECRET_KEY,
-        amount: 2000,
-        currency: 'XOF',
-        reference: `payment_${Date.now()}`,
-        description: 'Achat de La Voie du Salut (chapitres 10-44)',
-        success_url: 'https://ahmedaidara05.github.io/lavoiedusalut1.5/index.html?payment=success',
-        cancel_url: 'https://ahmedaidara05.github.io/lavoiedusalut1.5/payment-failure.html',
-        ipn_url: 'https://us-central1-la-voie-du-salut-36409.cloudfunctions.net/paytechIPN',
-        customer_email: auth.currentUser ? auth.currentUser.email : 'guest@example.com',
-        customer_phone: '123456789',
-        customer_name: auth.currentUser ? auth.currentUser.displayName || 'Utilisateur' : 'Utilisateur Anonyme'
-    };
-
-    try {
-        const response = await fetch(PAYTECH_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(paymentData)
-        });
-        const result = await response.json();
-        if (result.success && result.payment_url) {
-            window.location.href = result.payment_url;
-        } else {
-            alert('Erreur lors de l’initiation du paiement : ' + result.message);
-        }
-    } catch (error) {
-        console.error('Erreur lors de l’appel à l’API PayTech :', error);
-        alert('Une erreur s’est produite. Veuillez réessayer.');
-    }
+buyButton.addEventListener('click', () => {
+    // Générer une référence unique pour le paiement
+    const paymentReference = `payment_${Date.now()}`;
+    // Stocker temporairement la référence dans localStorage
+    localStorage.setItem('pendingPaymentRef', paymentReference);
+    // Rediriger vers la page de paiement PayTech (URL fictive pour l'exemple, à remplacer par l'URL réelle après configuration)
+    window.location.href = `https://paytech.sn/payment?ref=${paymentReference}&amount=2000&success_url=https://ahmedaidara05.github.io/lavoiedusalut1.5/index.html?payment=success&cancel_url=https://ahmedaidara05.github.io/lavoiedusalut1.5/payment-failure.html`;
 });
 
 loginButton.addEventListener('click', () => {
@@ -953,6 +932,33 @@ modalClose.addEventListener('click', () => {
 // Gestion du message post-paiement
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('payment') === 'success') {
+    const paymentRef = localStorage.getItem('pendingPaymentRef');
+    if (paymentRef) {
+        // Mettre à jour Firestore pour l'utilisateur connecté
+        const user = auth.currentUser;
+        if (user) {
+            db.collection('users').doc(user.uid).set({
+                hasPaid: true,
+                paymentRef: paymentRef
+            }, { merge: true }).then(() => {
+                localStorage.removeItem('pendingPaymentRef');
+                showSuccessMessage();
+            }).catch(error => {
+                console.error('Erreur lors de la mise à jour de Firestore :', error);
+                alert('Erreur lors de la confirmation du paiement. Veuillez contacter le support.');
+            });
+        } else {
+            // Utilisateur non connecté : stocker temporairement dans localStorage
+            localStorage.setItem('hasPaid', 'true');
+            localStorage.removeItem('pendingPaymentRef');
+            showSuccessMessage();
+        }
+    } else {
+        alert('Aucune référence de paiement trouvée. Veuillez réessayer.');
+    }
+}
+
+function showSuccessMessage() {
     const successMessage = document.getElementById('paymentSuccessMessage');
     successMessage.style.display = 'block';
     setTimeout(() => {
