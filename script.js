@@ -966,16 +966,22 @@ if (savedBgColor) {
     localStorage.setItem('readerBackgroundColor', '#d2c9a3');
 }
 
-// Gestion du modal d'achat
+// Gestion du modal d'achat et des pages de paiement
 const paymentModal = document.getElementById('paymentModal');
 const buyButton = document.getElementById('buyButton');
 const loginButton = document.getElementById('loginButton');
 const modalClose = document.querySelector('.modal-close');
+const paymentOptionsPage = document.getElementById('paymentOptionsPage');
+const paymentOptionsClose = document.querySelector('.payment-options-close');
+const wavePaymentButton = document.getElementById('wavePaymentButton');
+const paypalPaymentButton = document.getElementById('paypalPaymentButton');
+const paymentConfirmationPage = document.getElementById('paymentConfirmationPage');
+const confirmPaymentButton = document.getElementById('confirmPaymentButton');
+const tryAgainLink = document.getElementById('tryAgainLink');
 
 buyButton.addEventListener('click', () => {
-    const paymentReference = `payment_${Date.now()}`;
-    localStorage.setItem('pendingPaymentRef', paymentReference);
-    window.location.href = `https://paytech.sn/pay?token=xyz`; // Remplacer par l'URL PayTech réelle
+    paymentModal.style.display = 'none';
+    paymentOptionsPage.style.display = 'block';
 });
 
 loginButton.addEventListener('click', () => {
@@ -991,7 +997,56 @@ loginButton.addEventListener('click', () => {
 modalClose.addEventListener('click', () => {
     paymentModal.style.display = 'none';
 });
-    
+
+paymentOptionsClose.addEventListener('click', () => {
+    paymentOptionsPage.style.display = 'none';
+    readingPage.style.display = 'block';
+    loadSuraContent();
+});
+
+wavePaymentButton.addEventListener('click', () => {
+    const paymentReference = `wave_${Date.now()}`;
+    localStorage.setItem('pendingPaymentRef', paymentReference);
+    window.location.href = 'https://pay.wave.com/m/M_sn_dyIw8DZWV46K/c/sn/?amount=2000';
+});
+
+paypalPaymentButton.addEventListener('click', () => {
+    const paymentReference = `paypal_${Date.now()}`;
+    localStorage.setItem('pendingPaymentRef', paymentReference);
+    window.location.href = 'https://paypal.me/AhmedAidara/3.5USD?country.x=SN&locale.x=fr_XC';
+});
+
+confirmPaymentButton.addEventListener('click', () => {
+    // Marquer le paiement comme validé
+    localStorage.setItem('hasPaid', 'true');
+    const user = auth.currentUser;
+    if (user) {
+        db.collection('users').doc(user.uid).set({
+            hasPaid: true
+        }, { merge: true });
+    }
+    paymentConfirmationPage.style.display = 'none';
+    readingPage.style.display = 'block';
+    loadSuraContent();
+});
+
+tryAgainLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    paymentConfirmationPage.style.display = 'none';
+    paymentOptionsPage.style.display = 'block';
+});
+
+// Vérifier l'URL de retour pour la confirmation de paiement
+window.addEventListener('load', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment') === 'success') {
+        paymentConfirmationPage.style.display = 'block';
+        homePage.style.display = 'none';
+        readingPage.style.display = 'none';
+        paymentModal.style.display = 'none';
+        paymentOptionsPage.style.display = 'none';
+    }
+});
 // Gestion du message post-paiement
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('payment') === 'success') {
