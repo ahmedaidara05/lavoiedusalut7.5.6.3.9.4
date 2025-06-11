@@ -930,8 +930,9 @@ async function loadSuraContent(verseIndex = null) {
                 hasPaid = userDoc.exists && userDoc.data().hasPaid;
                 console.log('Utilisateur connecté, hasPaid:', hasPaid);
             } else {
-                hasPaid = !!localStorage.getItem('hasPaid');
-                console.log('Utilisateur non connecté, hasPaid:', hasPaid);
+                const hasPaidRef = localStorage.getItem('hasPaid');
+                hasPaid = hasPaidRef && (hasPaidRef.startsWith('wave-') || hasPaidRef.startsWith('paypal-'));
+                console.log('Utilisateur non connecté, hasPaid:', hasPaid, 'ref:', hasPaidRef);
             }
             if (!hasPaid) {
                 currentSura = 9;
@@ -1026,8 +1027,10 @@ const paymentOptionsPage = document.getElementById('paymentOptionsPage');
 const paymentOptionsClose = document.querySelector('.payment-options-close');
 const wavePaymentButton = document.getElementById('wavePaymentButton');
 const paypalPaymentButton = document.getElementById('paypalPaymentButton');
+const alreadyPaidButton = document.getElementById('alreadyPaidButton');
 const paymentConfirmationPage = document.getElementById('paymentConfirmationPage');
 const confirmPaymentButton = document.getElementById('confirmPaymentButton');
+const paymentReferenceInput = document.getElementById('paymentReferenceInput');
 const tryAgainLink = document.getElementById('tryAgainLink');
 
 buyButton.addEventListener('click', () => {
@@ -1066,48 +1069,72 @@ paymentOptionsClose.addEventListener('click', () => {
 wavePaymentButton.addEventListener('click', () => {
     const paymentReference = `wave-${Date.now()}`;
     localStorage.setItem('pendingPaymentReference', paymentReference);
-    localStorage.setItem('intendedChapter', currentSura); // Sauvegarder le chapitre demandé
-    window.location.href = 'https://pay.wave.com/m/M_sn_dyIw8DZWV46K/c/sn?amount=100';
+    localStorage.setItem('intendedChapter', currentSura);
+    window.location.href = 'https://pay.wave.com/m/M_sn_dyIw8DZWV46K/c/sn?amount=2000';
     console.log('Redirection vers Wave, ref:', paymentReference);
 });
 
 paypalPaymentButton.addEventListener('click', () => {
     const paymentReference = `paypal-${Date.now()}`;
     localStorage.setItem('pendingPaymentReference', paymentReference);
-    localStorage.setItem('intendedChapter', currentSura); // Sauvegarder le chapitre demandé
+    localStorage.setItem('intendedChapter', currentSura);
     window.location.href = 'https://paypal.me/AhmedAidara/3.5?country.x=SN&locale.x=fr_XC';
     console.log('Redirection vers PayPal, ref:', paymentReference);
 });
 
+alreadyPaidButton.addEventListener('click', () => {
+    paymentOptionsPage.style.display = 'none';
+    paymentConfirmationPage.style.display = 'block';
+    console.log('Bouton J’ai payé cliqué');
+});
+
 confirmPaymentButton.addEventListener('click', async () => {
-    console.log('Bouton Confirmer le paiement cliqué');
-    const paymentReference = localStorage.getItem('pendingPaymentReference') || `manual-${Date.now()}`;
-    try {
-        localStorage.setItem('hasPaid', paymentReference);
-        const user = auth.currentUser;
-        if (user) {
-            await db.collection('users').doc(user.uid).set({
-                hasPaid: true,
-                paymentReference: paymentReference
-            }, { merge: true });
-            console.log('Firestore mis à jour pour utilisateur:', user.uid);
+    const enteredReference = paymentReferenceInput.value.trim();
+    const pendingReference = localStorage.getItem('pendingPaymentReference');
+    console.log('Confirmation, entré:', enteredReference, 'attendu:', pendingReference);
+
+    if (!enteredReference) {
+        alert('Veuillez entrer une référence de paiement valide.');
+        return;
+    }
+
+    if (enteredReference === pendingReference || enteredReference.startsWith('wave-') || enteredReference.startsWith('paypal-')) {
+        try {
+            localStorage.setItem('hasPaid', enteredReference);
+            const user = auth.currentUser;
+            if (user) {
+                await db.collection('users').doc(user.uid).set({
+                    hasPaid: true,
+                    paymentReference: enteredReference
+                }, { merge: true });
+                console.log('Firestore mis à jour pour utilisateur:', user.uid);
+            }
+            const intendedChapter = parseInt(localStorage.getItem('intendedChapter')) || 9;
+            localStorage.removeItem('pendingPaymentReference');
+            localStorage.removeItem('intendedChapter');
+            paymentConfirmationPage.style.display = 'none';
+            readingPage.style.display = 'block';
+            currentSura = intendedChapter >= 10 && intendedChapter <= 44 ? intendedChapter : 9;
+            loadSuraContent();
+            showSuccessMessage();
+        } catch (error) {
+            console.error('Erreur lors de la confirmation:', error);
+            alert('Erreur lors de la confirmation. Veuillez réessayer.');
         }
-        const intendedChapter = parseInt(localStorage.getItem('intendedChapter')) || 9;
-        localStorage.removeItem('pendingPaymentReference');
-        localStorage.removeItem('intendedChapter');
-        paymentConfirmationPage.style.display = 'none';
-        readingPage.style.display = 'block';
-        currentSura = intendedChapter >= 10 && intendedChapter <= 44 ? intendedChapter : 9;
-        loadSuraContent();
-        showSuccessMessage();
-    } catch (error) {
-        console.error('Erreur lors de la confirmation:', error);
-        alert('Erreur lors de la confirmation du paiement. Veuillez réessayer.');
-        paymentConfirmationPage.style.display = 'none';
-        paymentOptionsPage.style.display = 'block';
+    } else {
+        alert('Référence de paiement incorrecte. Vérifiez votre reçu Wave/PayPal.');
+        paymentReferenceInput.value = '';
     }
 });
-    
+
+tryAgainLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    paymentConfirmationPage.style.display = 'none';
+    paymentOptionsPage.style.display = 'block';
+    paymentReferenceInput.value = '';
+    console.log('Retour à la page des options de paiement');
+});
+
 // Vérifier l'URL de retour pour la confirmation de paiement
 window.addEventListener('load', () => {
     const urlParams = new URLSearchParams(window.location.search);
