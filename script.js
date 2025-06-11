@@ -475,13 +475,34 @@ function showPaymentModal() {
     modal.style.display = 'block';
 }
 
-    document.querySelector('.prev-btn').addEventListener('click', () => {
-        if (currentSura > 1) {
-            currentSura--;
+document.querySelector('.prev-btn').addEventListener('click', async () => {
+    if (currentSura > 1) {
+        const prevSura = currentSura - 1;
+        if (prevSura >= 10 && prevSura <= 44) {
+            const user = auth.currentUser;
+            if (user) {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists && userDoc.data().hasPaid) {
+                    currentSura = prevSura;
+                    loadSuraContent();
+                } else {
+                    showPaymentModal();
+                }
+            } else {
+                if (localStorage.getItem('hasPaid') === 'true') {
+                    currentSura = prevSura;
+                    loadSuraContent();
+                } else {
+                    showPaymentModal();
+                }
+            }
+        } else {
+            currentSura = prevSura;
             loadSuraContent();
         }
-    });
-
+    }
+});
+    
 document.querySelector('.next-btn').addEventListener('click', async () => {
     if (currentSura < 44) {
         const nextSura = currentSura + 1;
@@ -893,41 +914,53 @@ document.querySelectorAll('.color-btn').forEach(btn => {
     });
 });
 
-    // Charger le contenu du chapitre
-    function loadSuraContent(verseIndex = null) {
-        const suraData = suraContents[currentSura] || suraContents[1];
-        suraTitle.textContent = `La Voie du Salut ${currentSura}`;
-        const content = suraData[languageSelect.value] || suraData.fr;
-        const verses = content.split('<br>').filter(verse => verse.trim());
-
-        const html = verses.map((verse, index) =>
-            `<div id="verse-${index + 1}" class="verse">${verse}</div>`
-        ).join('');
-
-        if (languageSelect.value === 'ar') {
-            arabicText.innerHTML = html;
-            textContent.style.display = 'none';
-            arabicText.style.display = 'block';
-        } else {
-            textContent.innerHTML = html;
-            arabicText.style.display = 'none';
-            textContent.style.display = 'block';
-        }
-
-        arabicText.style.fontSize = `${currentFontSize}px`;
-        textContent.style.fontSize = `${currentFontSize}px`;
-        favoriteBtn.textContent = favorites.includes(currentSura) ? '★' : '☆';
-
-        if (verseIndex) {
-            const verseElement = document.getElementById(`verse-${verseIndex}`);
-            if (verseElement) {
-                verseElement.scrollIntoView({ behavior: 'smooth' });
-                verseElement.classList.add('highlight-verse');
-                setTimeout(() => verseElement.classList.remove('highlight-verse'), 2000);
+async function loadSuraContent(verseIndex = null) {
+    if (currentSura >= 10 && currentSura <= 44) {
+        const user = auth.currentUser;
+        if (user) {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists || !userDoc.data().hasPaid) {
+                showPaymentModal();
+                return;
             }
+        } else if (localStorage.getItem('hasPaid') !== 'true') {
+            showPaymentModal();
+            return;
         }
     }
 
+    const suraData = suraContents[currentSura] || suraContents[1];
+    suraTitle.textContent = `La Voie du Salut ${currentSura}`;
+    const content = suraData[languageSelect.value] || suraData.fr;
+    const verses = content.split('<br>').filter(verse => verse.trim());
+
+    const html = verses.map((verse, index) =>
+        `<div id="verse-${index + 1}" class="verse">${verse}</div>`
+    ).join('');
+
+    if (languageSelect.value === 'ar') {
+        arabicText.innerHTML = html;
+        textContent.style.display = 'none';
+        arabicText.style.display = 'block';
+    } else {
+        textContent.innerHTML = html;
+        arabicText.style.display = 'none';
+        textContent.style.display = 'block';
+    }
+
+    arabicText.style.fontSize = `${currentFontSize}px`;
+    textContent.style.fontSize = `${currentFontSize}px`;
+    favoriteBtn.textContent = favorites.includes(currentSura) ? '★' : '☆';
+
+    if (verseIndex) {
+        const verseElement = document.getElementById(`verse-${verseIndex}`);
+        if (verseElement) {
+            verseElement.scrollIntoView({ behavior: 'smooth' });
+            verseElement.classList.add('highlight-verse');
+            setTimeout(() => verseElement.classList.remove('highlight-verse'), 2000);
+        }
+    }
+}
 // Charger les paramètres sauvegardés
 const savedTheme = localStorage.getItem('theme');
 if (savedTheme) {
@@ -982,6 +1015,7 @@ const tryAgainLink = document.getElementById('tryAgainLink');
 buyButton.addEventListener('click', () => {
     paymentModal.style.display = 'none';
     paymentOptionsPage.style.display = 'block';
+    console.log('Page de paiement ouverte');
 });
 
 loginButton.addEventListener('click', () => {
@@ -992,48 +1026,66 @@ loginButton.addEventListener('click', () => {
     indexPage.style.display = 'none';
     favoritesPage.style.display = 'none';
     notesPage.style.display = 'none';
+    console.log('Page des paramètres ouverte');
 });
 
 modalClose.addEventListener('click', () => {
     paymentModal.style.display = 'none';
+    readingPage.style.display = 'block';
+    loadSuraContent();
+    console.log('Modal de paiement fermé');
 });
 
 paymentOptionsClose.addEventListener('click', () => {
     paymentOptionsPage.style.display = 'none';
     readingPage.style.display = 'block';
     loadSuraContent();
+    console.log('Page des options de paiement fermée');
 });
 
 wavePaymentButton.addEventListener('click', () => {
     const paymentReference = `wave_${Date.now()}`;
     localStorage.setItem('pendingPaymentRef', paymentReference);
     window.location.href = 'https://pay.wave.com/m/M_sn_dyIw8DZWV46K/c/sn/?amount=2000';
+    console.log('Redirection vers Wave, ref:', paymentReference);
 });
 
 paypalPaymentButton.addEventListener('click', () => {
     const paymentReference = `paypal_${Date.now()}`;
     localStorage.setItem('pendingPaymentRef', paymentReference);
     window.location.href = 'https://paypal.me/AhmedAidara/3.5USD?country.x=SN&locale.x=fr_XC';
+    console.log('Redirection vers PayPal, ref:', paymentReference);
 });
 
-confirmPaymentButton.addEventListener('click', () => {
-    // Marquer le paiement comme validé
-    localStorage.setItem('hasPaid', 'true');
-    const user = auth.currentUser;
-    if (user) {
-        db.collection('users').doc(user.uid).set({
-            hasPaid: true
-        }, { merge: true });
+confirmPaymentButton.addEventListener('click', async () => {
+    const paymentRef = localStorage.getItem('pendingPaymentRef');
+    if (paymentRef) {
+        localStorage.setItem('hasPaid', 'true');
+        const user = auth.currentUser;
+        if (user) {
+            await db.collection('users').doc(user.uid).set({
+                hasPaid: true,
+                paymentRef: paymentRef
+            }, { merge: true });
+            console.log('Firestore mis à jour pour utilisateur connecté');
+        }
+        localStorage.removeItem('pendingPaymentRef');
+        paymentConfirmationPage.style.display = 'none';
+        readingPage.style.display = 'block';
+        loadSuraContent();
+        showSuccessMessage();
+    } else {
+        alert('Aucune référence de paiement trouvée. Veuillez réessayer.');
+        paymentConfirmationPage.style.display = 'none';
+        paymentOptionsPage.style.display = 'block';
     }
-    paymentConfirmationPage.style.display = 'none';
-    readingPage.style.display = 'block';
-    loadSuraContent();
 });
 
 tryAgainLink.addEventListener('click', (e) => {
     e.preventDefault();
     paymentConfirmationPage.style.display = 'none';
     paymentOptionsPage.style.display = 'block';
+    console.log('Retour à la page des options de paiement');
 });
 
 // Vérifier l'URL de retour pour la confirmation de paiement
@@ -1045,13 +1097,25 @@ window.addEventListener('load', () => {
         readingPage.style.display = 'none';
         paymentModal.style.display = 'none';
         paymentOptionsPage.style.display = 'none';
+        console.log('URL de succès détectée, affichage de la page de confirmation');
     }
 });
+
 // Gestion du message post-paiement
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.get('payment') === 'success') {
-    const paymentRef = localStorage.getItem('pendingPaymentRef');
-    if (paymentRef) {
+function showSuccessMessage() {
+    const successMessage = document.getElementById('paymentSuccessMessage');
+    successMessage.style.display = 'block';
+    setTimeout(() => {
+        successMessage.style.display = 'none';
+        window.history.replaceState({}, document.title, '/lavoiedusalut1.5/index.html');
+    }, 5000);
+}
+
+document.getElementById('closeSuccessMessage').addEventListener('click', () => {
+    document.getElementById('paymentSuccessMessage').style.display = 'none';
+    window.history.replaceState({}, document.title, '/lavoiedusalut1.5/index.html');
+});
+    
         // Mettre à jour Firestore pour l'utilisateur connecté
         const user = auth.currentUser;
         if (user) {
