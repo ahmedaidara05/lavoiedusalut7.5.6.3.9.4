@@ -1072,3 +1072,52 @@ header h1 {
   background-color: #1b5e20;
 }
 
+/* Styles pour la page de sélection des modes de paiement */
+#paymentOptionsPage .modal-content {
+  text-align: center;
+}
+#wavePaymentButton, #paypalPaymentButton {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+#wavePaymentButton {
+  background-color: #00A1D6;
+  color: white;
+}
+#paypalPaymentButton {
+  background-color: #003087;
+  color: white;
+}
+#wavePaymentButton:hover {
+  background-color: #0087B4;
+}
+#paypalPaymentButton:hover {
+  background-color: #002070;
+}
+
+/* Styles pour la page de confirmation */
+#paymentConfirmationPage .modal-content {
+  text-align: center;
+}
+#confirmPaymentButton {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #2e7d32;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+#confirmPaymentButton:hover {
+  background-color: #1b5e20;
+}
+#tryAgainLink {
+  color: #2e7d32;
+  text-decoration: underline;
+}
