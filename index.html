@@ -399,6 +399,27 @@
   </div>
 </div>
 
+    <!-- Page de sélection des modes de paiement -->
+<div id="paymentOptionsPage" class="modal" style="display: none;">
+  <div class="modal-content">
+    <span class="modal-close payment-options-close">×</span>
+    <h2>Choisissez un mode de paiement</h2>
+    <p>Payez 2000 FCFA pour accéder aux chapitres 10 à 44.</p>
+    <button id="wavePaymentButton">Payer avec Wave</button>
+    <button id="paypalPaymentButton">Payer avec PayPal</button>
+  </div>
+</div>
+
+<!-- Page de confirmation de paiement -->
+<div id="paymentConfirmationPage" class="modal" style="display: none;">
+  <div class="modal-content">
+    <h2>Confirmation de paiement</h2>
+    <p>Après avoir effectué le paiement, cliquez ci-dessous pour confirmer et accéder au contenu.</p>
+    <button id="confirmPaymentButton">Confirmer le paiement</button>
+    <p>Si le paiement a échoué, <a href="#" id="tryAgainLink">essayez à nouveau</a>.</p>
+  </div>
+</div>
+    
 <!-- Message post-paiement -->
 <div id="paymentSuccessMessage" class="success-message" style="display: none;">
   <p>Nous vous invitons à vous inscrire pour garder votre contenu déjà payé</p>
