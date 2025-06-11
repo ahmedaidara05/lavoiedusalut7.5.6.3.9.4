@@ -473,6 +473,11 @@ document.querySelectorAll('.index-page li').forEach(li => {
 function showPaymentModal() {
     const modal = document.getElementById('paymentModal');
     modal.style.display = 'block';
+    currentSura = 9; // Réinitialiser à un chapitre gratuit
+    readingPage.style.display = 'block';
+    indexPage.style.display = 'none';
+    favoritesPage.style.display = 'none';
+    console.log('Modal de paiement affiché, currentSura réinitialisé à 9');
 }
 
 document.querySelector('.prev-btn').addEventListener('click', async () => {
@@ -915,15 +920,27 @@ document.querySelectorAll('.color-btn').forEach(btn => {
 });
 
 async function loadSuraContent(verseIndex = null) {
+    console.log('loadSuraContent appelé pour chapitre:', currentSura);
     if (currentSura >= 10 && currentSura <= 44) {
-        const user = auth.currentUser;
-        if (user) {
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            if (!userDoc.exists || !userDoc.data().hasPaid) {
+        try {
+            const user = auth.currentUser;
+            let hasPaid = false;
+            if (user) {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                hasPaid = userDoc.exists && userDoc.data().hasPaid;
+                console.log('Utilisateur connecté, hasPaid:', hasPaid);
+            } else {
+                hasPaid = localStorage.getItem('hasPaid') === 'true';
+                console.log('Utilisateur non connecté, hasPaid:', hasPaid);
+            }
+            if (!hasPaid) {
+                currentSura = 1; // Réinitialiser à un chapitre gratuit
                 showPaymentModal();
                 return;
             }
-        } else if (localStorage.getItem('hasPaid') !== 'true') {
+        } catch (error) {
+            console.error('Erreur lors de la vérification du paiement:', error);
+            currentSura = 9;
             showPaymentModal();
             return;
         }
@@ -961,6 +978,7 @@ async function loadSuraContent(verseIndex = null) {
         }
     }
 }
+    
 // Charger les paramètres sauvegardés
 const savedTheme = localStorage.getItem('theme');
 if (savedTheme) {
@@ -1032,6 +1050,7 @@ loginButton.addEventListener('click', () => {
 modalClose.addEventListener('click', () => {
     paymentModal.style.display = 'none';
     readingPage.style.display = 'block';
+    currentSura = 9;
     loadSuraContent();
     console.log('Modal de paiement fermé');
 });
@@ -1039,43 +1058,53 @@ modalClose.addEventListener('click', () => {
 paymentOptionsClose.addEventListener('click', () => {
     paymentOptionsPage.style.display = 'none';
     readingPage.style.display = 'block';
+    currentSura = 9;
     loadSuraContent();
     console.log('Page des options de paiement fermée');
 });
 
 wavePaymentButton.addEventListener('click', () => {
-    const paymentReference = `wave_${Date.now()}`;
-    localStorage.setItem('pendingPaymentRef', paymentReference);
-    window.location.href = 'https://pay.wave.com/m/M_sn_dyIw8DZWV46K/c/sn/?amount=2000';
+    const paymentReference = `wave-${Date.now()}`;
+    localStorage.setItem('pendingPaymentReference', paymentReference);
+    localStorage.setItem('intendedChapter', currentSura); // Sauvegarder le chapitre demandé
+    window.location.href = 'https://pay.wave.com/m/M_sn_dyIw8DZWV46K/c/sn?amount=2000';
     console.log('Redirection vers Wave, ref:', paymentReference);
 });
 
 paypalPaymentButton.addEventListener('click', () => {
-    const paymentReference = `paypal_${Date.now()}`;
-    localStorage.setItem('pendingPaymentRef', paymentReference);
-    window.location.href = 'https://paypal.me/AhmedAidara/3.5USD?country.x=SN&locale.x=fr_XC';
+    const paymentReference = `paypal-${Date.now()}`;
+    localStorage.setItem('pendingPaymentReference', paymentReference);
+    localStorage.setItem('intendedChapter', currentSura); // Sauvegarder le chapitre demandé
+    window.location.href = 'https://paypal.me/AhmedAidara/3.5?country.x=SN&locale.x=fr_XC';
     console.log('Redirection vers PayPal, ref:', paymentReference);
 });
 
 confirmPaymentButton.addEventListener('click', async () => {
-    const paymentRef = localStorage.getItem('pendingPaymentRef');
-    if (paymentRef) {
-        localStorage.setItem('hasPaid', 'true');
+    const paymentReference = localStorage.getItem('pendingPaymentReference');
+    if (paymentReference) {
+        localStorage.setItem('hasPaid', paymentReference); // Utiliser la référence comme preuve
         const user = auth.currentUser;
         if (user) {
-            await db.collection('users').doc(user.uid).set({
-                hasPaid: true,
-                paymentRef: paymentRef
-            }, { merge: true });
-            console.log('Firestore mis à jour pour utilisateur connecté');
+            try {
+                await db.collection('users').doc(user.uid).set({
+                    hasPaid: true,
+                    paymentReference: paymentReference
+                }, { merge: true });
+                console.log('Firestore mis à jour pour utilisateur:', user.uid);
+            } catch (error) {
+                console.error('Erreur Firestore:', error);
+            }
         }
-        localStorage.removeItem('pendingPaymentRef');
+        const intendedChapter = parseInt(localStorage.getItem('intendedChapter')) || 9;
+        localStorage.removeItem('pendingPaymentReference');
+        localStorage.removeItem('intendedChapter');
         paymentConfirmationPage.style.display = 'none';
         readingPage.style.display = 'block';
+        currentSura = intendedChapter >= 10 && intendedChapter <= 44 ? intendedChapter : 9;
         loadSuraContent();
         showSuccessMessage();
     } else {
-        alert('Aucune référence de paiement trouvée. Veuillez réessayer.');
+        alert('Erreur : Aucun paiement en cours. Veuillez réessayer.');
         paymentConfirmationPage.style.display = 'none';
         paymentOptionsPage.style.display = 'block';
     }
@@ -1097,7 +1126,8 @@ window.addEventListener('load', () => {
         readingPage.style.display = 'none';
         paymentModal.style.display = 'none';
         paymentOptionsPage.style.display = 'none';
-        console.log('URL de succès détectée, affichage de la page de confirmation');
+        console.log('URL de succès détectée');
+        window.history.replaceState({}, '', '/lavoiedusalut1.5/index.html');
     }
 });
 
@@ -1107,51 +1137,11 @@ function showSuccessMessage() {
     successMessage.style.display = 'block';
     setTimeout(() => {
         successMessage.style.display = 'none';
-        window.history.replaceState({}, document.title, '/lavoiedusalut1.5/index.html');
     }, 5000);
 }
 
 document.getElementById('closeSuccessMessage').addEventListener('click', () => {
     document.getElementById('paymentSuccessMessage').style.display = 'none';
-    window.history.replaceState({}, document.title, '/lavoiedusalut1.5/index.html');
-});
-    
-        // Mettre à jour Firestore pour l'utilisateur connecté
-        const user = auth.currentUser;
-        if (user) {
-            db.collection('users').doc(user.uid).set({
-                hasPaid: true,
-                paymentRef: paymentRef
-            }, { merge: true }).then(() => {
-                localStorage.removeItem('pendingPaymentRef');
-                showSuccessMessage();
-            }).catch(error => {
-                console.error('Erreur lors de la mise à jour de Firestore :', error);
-                alert('Erreur lors de la confirmation du paiement. Veuillez contacter le support.');
-            });
-        } else {
-            // Utilisateur non connecté : stocker temporairement dans localStorage
-            localStorage.setItem('hasPaid', 'true');
-            localStorage.removeItem('pendingPaymentRef');
-            showSuccessMessage();
-        }
-    } else {
-        alert('Aucune référence de paiement trouvée. Veuillez réessayer.');
-    }
-}
-
-function showSuccessMessage() {
-    const successMessage = document.getElementById('paymentSuccessMessage');
-    successMessage.style.display = 'block';
-    setTimeout(() => {
-        successMessage.style.display = 'none';
-        window.history.replaceState({}, document.title, '/lavoiedusalut1.5/index.html');
-    }, 5000);
-}
-
-document.getElementById('closeSuccessMessage').addEventListener('click', () => {
-    document.getElementById('paymentSuccessMessage').style.display = 'none';
-    window.history.replaceState({}, document.title, '/lavoiedusalut1.5/index.html');
 });
     
     // Initialisation
