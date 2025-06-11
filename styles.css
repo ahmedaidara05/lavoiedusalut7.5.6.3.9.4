@@ -1121,3 +1121,27 @@ header h1 {
   color: #2e7d32;
   text-decoration: underline;
 }
+
+#paymentReferenceInput {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+#alreadyPaidButton {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  font-size: 16px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+#alreadyPaidButton:hover {
+  background-color: #45a049;
+}
