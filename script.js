@@ -1067,7 +1067,7 @@ wavePaymentButton.addEventListener('click', () => {
     const paymentReference = `wave-${Date.now()}`;
     localStorage.setItem('pendingPaymentReference', paymentReference);
     localStorage.setItem('intendedChapter', currentSura); // Sauvegarder le chapitre demandé
-    window.location.href = 'https://pay.wave.com/m/M_sn_dyIw8DZWV46K/c/sn?amount=2000';
+    window.location.href = 'https://pay.wave.com/m/M_sn_dyIw8DZWV46K/c/sn?amount=100';
     console.log('Redirection vers Wave, ref:', paymentReference);
 });
 
