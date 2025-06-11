@@ -399,22 +399,24 @@
   </div>
 </div>
 
-    <!-- Page de sélection des modes de paiement -->
+<!-- Page de sélection des modes de paiement -->
 <div id="paymentOptionsPage" class="modal" style="display: none;">
   <div class="modal-content">
     <span class="modal-close payment-options-close">×</span>
     <h2>Choisissez un mode de paiement</h2>
-    <p>Payez 2000 FCFA pour accéder aux chapitres 10 à 44.</p>
+    <p>Payez 2000 FCFA pour accéder aux chapitres 10 à 44. Après paiement, revenez ici et cliquez sur "J’ai payé" pour confirmer.</p>
     <button id="wavePaymentButton">Payer avec Wave</button>
     <button id="paypalPaymentButton">Payer avec PayPal</button>
+    <button id="alreadyPaidButton">J’ai payé</button>
   </div>
 </div>
 
- <!-- Page de confirmation de paiement -->
+<!-- Page de confirmation de paiement -->
 <div id="paymentConfirmationPage" class="modal" style="display: none;">
   <div class="modal-content">
     <h2>Confirmation de paiement</h2>
-    <p>Merci pour votre paiement ! Cliquez sur "Confirmer le paiement" pour déverrouiller les chapitres 10 à 44. Si vous avez payé via Wave, retournez à l’application en utilisant le lien de retour ou revenez ici manuellement. En cas d’échec, <a href="#" id="tryAgainLink">essayez à nouveau</a>.</p>
+    <p>Entrez la référence de paiement reçue de Wave ou PayPal (visible dans votre reçu ou e-mail) pour déverrouiller les chapitres 10 à 44. Si vous avez payé via Wave, revenez ici après le paiement. En cas d’échec, <a href="#" id="tryAgainLink">essayez à nouveau</a>.</p>
+    <input type="text" id="paymentReferenceInput" placeholder="Entrez la référence de paiement">
     <button id="confirmPaymentButton">Confirmer le paiement</button>
   </div>
 </div>
